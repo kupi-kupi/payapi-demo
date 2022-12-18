@@ -1,51 +1,96 @@
 <?php
+
 class KupiKupiPayApi
 {
     private $api_url;
     private $platformUid;
     private $secretKey;
+    private $errorCode;
+    private $message;
+    private $response;
 
-    public function __construct($platformUid, $secretKey)
+    public function __construct(string $platformUid, string $secretKey)
     {
-        $this->api_url = 'https://devpayapi.kupi-kupi.shop/api/v1/transfer/';
+        $this->api_url     = 'https://payapi.kupi-kupi.shop/api/v1/transfer/';
         $this->platformUid = $platformUid;
-        $this->secretKey = $secretKey;
+        $this->secretKey   = $secretKey;
     }
 
-    public function init($args)
+    public function __get(string $name)
     {
-        return $this->buildQuery('Init', $args);
+        switch ($name) {
+            case 'error':
+                return $this->errorCode;
+            case 'message':
+                return $this->message;
+            case 'response':
+                return htmlentities($this->response);
+            default:
+                if ($this->response) {
+                    if ($json = json_decode($this->response, true)) {
+                        foreach ($json as $key => $value) {
+                            if (strtolower($name) == strtolower($key)) {
+                                return $json[$key];
+                            }
+                        }
+                    }
+                }
+
+                return false;
+        }
     }
 
-    public function balance($args)
+    /**
+     * Метод отвечает за отправку запроса на перевод баллов клиента
+     * в счет оплаты товаров или услуг. Сайт продавца получает
+     * ссылку на форму подтверждения перевода и
+     * должен перенаправить по ней покупателя.
+     *
+     * @param array $args
+     * @return mixed|null
+     */
+    public function init(array $args)
     {
-        return $this->buildQuery('balance', $args);
+        return $this->buildQuery('init', $args);
     }
 
-    public function checkout($args)
+    /**
+     * Метод получения баланса пользоватея,
+     * необходимо передать номер телефона пользователя
+     * в цифровом формате (пример: 79000000000)
+     *
+     * @param int $phone
+     * @return mixed|null
+     */
+    public function balance(int $phone)
+    {
+        return $this->buildQuery('balance', ['phone'=>$phone]);
+    }
+
+    /**
+     * Метод возвращает статус заказа в кешбэк-сервисе «Купи-Купи»
+     *
+     * @param array $args
+     * @return mixed|null
+     */
+    public function checkout(array $args)
     {
         return $this->buildQuery('checkout', $args);
     }
 
-    public function buildQuery($path, $args)
+    public function buildQuery(string $path, array $args)
     {
-        $url = $this->api_url;
-        if (is_array($args)) {
-            if (!array_key_exists('platformUid', $args)) {
-                $args['platformUid'] = $this->platformUid;
-            }
-            if (!array_key_exists('token', $args)) {
-                $args['token'] = $this->_genToken($args);
-            }
+        if (!array_key_exists('platformUid', $args)) {
+            $args['platformUid'] = $this->platformUid;
         }
-        $url = $this->_combineUrl($url, $path);
+        if (!array_key_exists('token', $args)) {
+            $args['token'] = $this->_genToken($args);
+        }
 
-        //var_dump($args); exit();
-
-        return $this->_sendRequest($url, $args);
+        return $this->_sendRequest($path, $args);
     }
 
-    private function _genToken($args)
+    private function _genToken(array $args)
     {
         $token = '';
         $args['secretKey'] = $this->secretKey;
@@ -61,92 +106,44 @@ class KupiKupiPayApi
         return $token;
     }
 
-    /**
-     * Combines parts of URL. Simply gets all parameters and puts '/' between
-     *
-     * @return string
-     */
-    private function _combineUrl()
+    private function _sendRequest(string $url, array $data)
     {
-        $args = func_get_args();
-        $url = '';
-        foreach ($args as $arg) {
-            if (is_string($arg)) {
-                if ($arg[strlen($arg) - 1] !== '/') {
-                    $arg .= '/';
-                }
-                $url .= $arg;
-            } else {
-                continue;
-            }
-        }
-
-        return $url;
-    }
-
-    private function _sendRequest($url, $data)
-    {
-        //https://weichie.com/blog/curl-api-calls-with-php/
-
         $dataString = json_encode($data);
 
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $dataString);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen($dataString)
-        ]);
+        try {
 
-        $result = curl_exec($ch);
-        var_dump($result); exit();
-        $result = json_decode($result);
-    }
+            if ($curl = curl_init()) {
 
-    /**
-     * Main method. Call API with params
-     *
-     * @param $api_url
-     * @param $args
-     * @return bool|string
-     * @throws HttpException
-     */
-    private function _sendRequest1($api_url, $args)
-    {
-        if (is_array($args)) {
-            $args = json_encode($args);
-        }
+                curl_setopt($curl, CURLOPT_POST, 1);
+                curl_setopt($curl, CURLOPT_POSTFIELDS, $dataString);
+                curl_setopt($curl, CURLOPT_URL, $this->api_url . $url);
+                curl_setopt($curl, CURLOPT_HTTPHEADER, [
+                    'Content-Type: application/json',
+                    'X-Requested-With: XMLHttpRequest',
+                    'Content-Length: ' . strlen($dataString)
+                ]);
+                curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
 
-        if ($curl = curl_init()) {
-            curl_setopt($curl, CURLOPT_URL, $api_url);
-            curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($curl, CURLOPT_POST, true);
-            curl_setopt($curl, CURLOPT_POSTFIELDS, $args);
-            curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                $result = curl_exec($curl);
 
-            $out = curl_exec($curl);
+                curl_close($curl);
 
-            $json = json_decode($out,true);
+                $this->response = $result;
 
-            var_dump($json); exit();
+                $json = json_decode($result,true);
 
-            if ($json) {
-                if (@$json->ErrorCode !== "0") {
-                    $this->error = @$json->Details;
-                } else {
-                    $this->paymentUrl = @$json->PaymentURL;
-                    $this->paymentId = @$json->PaymentId;
-                    $this->status = @$json->Status;
+                if ($json['errorCode'] ?? 0) {
+                    $this->message = $json['message'];
                 }
+
+                return $json;
+            } else {
+                throw new HttpException('Can not create connection to ' . $url . ' with args ' . $dataString, 404);
             }
 
-            curl_close($curl);
-
-            return $out;
-        } else {
-            throw new HttpException('Can not create connection to ' . $api_url . ' with args ' . $args, 404);
+        } catch (Exception $e) {
+            echo $e->getMessage(); die();
         }
     }
 }
