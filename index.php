@@ -3,8 +3,8 @@
 require_once('KupiKupiPayApi.php');
 
 $api = new KupiKupiPayApi(
-    'M2hULcD5OiYGkmSK',  // UID платформы
-    'yIKirCvplm0N1DOg'   // Ваш Secret_Key
+    'XXXXX',  // UID платформы
+    'YYYYY'   // Ваш Secret_Key
 );
 
 // Метод получения баланса пользоватея
