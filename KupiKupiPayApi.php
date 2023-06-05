@@ -91,7 +91,7 @@ class KupiKupiPayApi
     }
 
     /**
-     * Метод для регистрации чека покупателя
+     * Метод для регистрации чека пользователя
      *
      * @param array $args
      * @return mixed|null
