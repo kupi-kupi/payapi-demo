@@ -78,6 +78,29 @@ class KupiKupiPayApi
         return $this->buildQuery('checkout', $args);
     }
 
+    /**
+     * Метод подтверждения транзакции смс-кодом
+     *
+     * @param int $phone
+     * @param int $code
+     * @return mixed|null
+     */
+    public function confirmation(int $phone, int $code)
+    {
+        return $this->buildQuery('confirmation', ['phone' => $phone, 'code' => $code]);
+    }
+
+    /**
+     * Метод для регистрации чека покупателя
+     *
+     * @param array $args
+     * @return mixed|null
+     */
+    public function receipt(array $args)
+    {
+        return $this->buildQuery('receipt', $args);
+    }
+
     public function buildQuery(string $path, array $args)
     {
         if (!array_key_exists('platformUid', $args)) {
