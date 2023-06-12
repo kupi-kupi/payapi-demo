@@ -12,7 +12,7 @@ class KupiKupiPayApi
 
     public function __construct(string $platformUid, string $secretKey)
     {
-        $this->api_url     = 'https://' . ($this->env != 'production'?'dev':'') . 'payapi.kupi-kupi.shop/api/v1/curl/';
+        $this->api_url     = 'https://' . ($this->env != 'production'?'dev':'') . 'payapi.kupi-kupi.shop/api/v1/transfer/';
         $this->platformUid = $platformUid;
         $this->secretKey   = $secretKey;
     }
