@@ -2,6 +2,7 @@
 
 class KupiKupiPayApi
 {
+    private string $env = 'production'; // production|development - среда разработки
     private $api_url;
     private $platformUid;
     private $secretKey;
@@ -11,7 +12,7 @@ class KupiKupiPayApi
 
     public function __construct(string $platformUid, string $secretKey)
     {
-        $this->api_url     = 'https://payapi.kupi-kupi.shop/api/v1/transfer/';
+        $this->api_url     = 'https://' . ($this->env != 'production'?'dev':'') . 'payapi.kupi-kupi.shop/api/v1/curl/';
         $this->platformUid = $platformUid;
         $this->secretKey   = $secretKey;
     }
